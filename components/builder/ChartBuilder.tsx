@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
+import { ActionBar, type ActionName } from "@/components/actions/ActionBar";
 import { PowerChart, type PointClick, type PowerChartHandle } from "@/components/chart/PowerChart";
 import { RangeControls } from "@/components/chart/RangeControls";
 import { lastVisibleIndex } from "@/components/chart/chartModel";
@@ -12,10 +14,14 @@ import { Banner } from "@/components/ui/Banner";
 import { Button } from "@/components/ui/Button";
 import { HelpTip } from "@/components/ui/HelpTip";
 import { useUi } from "@/components/ui/UiProvider";
+import { PrintChartPage } from "@/components/print/PrintChartPage";
 import { NotesTextBox } from "@/components/text/NotesTextBox";
 import { StatsTextBox } from "@/components/text/StatsTextBox";
 import { autoTitle, needsPercentMode } from "@/lib/chart/state";
+import { errorMessage } from "@/lib/api";
+import { downloadBlob, downloadUrl } from "@/lib/download";
 import { formatShortDate } from "@/lib/format";
+import { buildChartPdf, chartFileBase, type ChartPage } from "@/lib/pdf/chartPdf";
 import { MAX_NOTES } from "@/lib/theme";
 import { EditableTitle } from "./EditableTitle";
 import { NotePopover } from "./NotePopover";
@@ -120,6 +126,56 @@ export function ChartBuilder() {
     () => (state.titleEdited ? state.title : autoTitle(state.datasets, resolved, state.view)),
     [state.titleEdited, state.title, state.datasets, state.view, resolved],
   );
+  const sourceLine = meta ? `Source: ${meta.sourceLabel}. Data as of ${formatShortDate(meta.dataAsOf)}.` : "";
+
+  /** A picture of the chart plus its texts, as used by print, PDF, email, and reports. */
+  const takeSnapshot = async (): Promise<ChartPage> => {
+    if (!chartRef.current) throw new Error("The chart is still loading. Please try again in a moment.");
+    return {
+      title,
+      topText: state.statsMode === "none" ? "" : topText,
+      bottomText: state.bottomText,
+      image: await chartRef.current.getImageDataUrl(),
+      sourceLine,
+    };
+  };
+
+  const [busy, setBusy] = useState<ActionName | null>(null);
+  const [printPage, setPrintPage] = useState<ChartPage | null>(null);
+
+  /** Run an export action, showing "Working…" on its button and a plain message if it fails. */
+  const run = async (name: ActionName, action: () => Promise<void>) => {
+    setBusy(name);
+    try {
+      await action();
+    } catch (err) {
+      ui.toast(errorMessage(err), "error");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handlePrint = () =>
+    run("print", async () => {
+      const page = await takeSnapshot();
+      // The print layout must be on the page before the print window opens.
+      flushSync(() => setPrintPage(page));
+      await document.querySelector<HTMLImageElement>(".print-only img")?.decode?.().catch(() => undefined);
+      window.print();
+    });
+
+  const handleDownloadPdf = () =>
+    run("pdf", async () => {
+      const pdf = buildChartPdf(await takeSnapshot());
+      downloadBlob(pdf.blob, pdf.filename);
+    });
+
+  const handleDownloadImage = () =>
+    run("image", async () => {
+      const page = await takeSnapshot();
+      downloadUrl(page.image, `${chartFileBase(page.title, new Date())}.png`);
+    });
+
   const percentLocked = needsPercentMode(state.datasets);
   const notesFull = state.notes.length >= MAX_NOTES;
   const editingNote = noteFlow?.step === "edit" ? state.notes.find((n) => n.id === noteFlow.id) : undefined;
@@ -299,11 +355,7 @@ export function ChartBuilder() {
                 />
                 <ViewToggle value={state.view} onChange={(view) => dispatch({ type: "setView", view })} />
                 {incompleteNote && <p className="text-muted">{incompleteNote}</p>}
-                {meta && (
-                  <p className="text-sm text-muted">
-                    Source: {meta.sourceLabel}. Data as of {formatShortDate(meta.dataAsOf)}.
-                  </p>
-                )}
+                {sourceLine && <p className="text-sm text-muted">{sourceLine}</p>}
               </div>
             </>
           )}
@@ -312,7 +364,21 @@ export function ChartBuilder() {
         <section aria-label="Meeting notes" className="rounded-xl border border-line bg-surface p-4">
           <NotesTextBox text={state.bottomText} onChange={(text) => dispatch({ type: "setBottomText", text })} />
         </section>
+
+        <ActionBar
+          busy={busy}
+          disabled={!data || !resolved}
+          onPrint={handlePrint}
+          onDownloadPdf={handleDownloadPdf}
+          onDownloadImage={handleDownloadImage}
+        />
       </main>
+
+      {printPage && (
+        <div className="print-only">
+          <PrintChartPage page={printPage} date={new Date()} />
+        </div>
+      )}
     </>
   );
 }
