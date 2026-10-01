@@ -1,0 +1,122 @@
+@import "tailwindcss";
+
+/* Colors and fonts come from lib/theme.ts (set as CSS variables on <html>). */
+@theme inline {
+  --color-brand: var(--brand);
+  --color-brand-dark: var(--brand-dark);
+  --color-brand-soft: var(--brand-soft);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-surface: var(--surface);
+  --color-page: var(--page);
+  --color-danger: var(--danger);
+  --color-warn-bg: var(--warn-bg);
+  --color-warn-border: var(--warn-border);
+  --font-sans: var(--font-app);
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-app);
+  line-height: 1.5;
+}
+
+/* One visible focus style for every control (keyboard access). */
+:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 2px;
+}
+
+button,
+select,
+[role="button"] {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+/* Shared control look: at least 44px tall, 16px text. */
+.field {
+  min-height: 44px;
+  width: 100%;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 8px 12px;
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+.field:hover {
+  border-color: var(--muted);
+}
+
+textarea.field {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #e6eaf0 25%, #f2f4f7 50%, #e6eaf0 75%);
+  background-size: 200% 100%;
+  animation: skeleton 1.4s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+@keyframes skeleton {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
+/* ---------- Print ---------- */
+
+.print-only {
+  display: none;
+}
+
+@page {
+  size: letter landscape;
+  margin: 0.5in;
+}
+
+@media print {
+  html,
+  body {
+    background: #fff !important;
+  }
+
+  .screen-only {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .print-page {
+    break-after: page;
+    break-inside: avoid;
+  }
+
+  .print-page:last-child {
+    break-after: auto;
+  }
+}

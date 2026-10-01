@@ -1,0 +1,67 @@
+// SQLite for the prototype. To move to PostgreSQL, change the provider below to
+// "postgresql" and point DATABASE_URL at the Postgres database.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Contact {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  group     String?
+  createdAt DateTime @default(now())
+}
+
+model SavedChart {
+  id         String       @id @default(cuid())
+  title      String
+  config     String // JSON: ChartConfig
+  topText    String
+  bottomText String
+  imagePng   String // base64 PNG snapshot (2x)
+  dataAsOf   DateTime
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  items      ReportItem[]
+}
+
+model Report {
+  id          String       @id @default(cuid())
+  title       String
+  meetingDate DateTime?
+  preparedBy  String?
+  intro       String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  items       ReportItem[]
+}
+
+model ReportItem {
+  id       String     @id @default(cuid())
+  reportId String
+  chartId  String
+  position Int
+  report   Report     @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  chart    SavedChart @relation(fields: [chartId], references: [id], onDelete: Cascade)
+}
+
+model SeriesCache {
+  seriesId  String   @id
+  payload   String // JSON: normalized points + meta
+  fetchedAt DateTime
+}
+
+model EmailLog {
+  id             String   @id @default(cuid())
+  recipients     String // comma-separated
+  subject        String
+  attachmentName String?
+  status         String // "sent" | "failed" | "logged-dev"
+  error          String?
+  createdAt      DateTime @default(now())
+}
