@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { CSSProperties, ReactNode } from "react";
+import { UiProvider } from "@/components/ui/UiProvider";
 import { SITE_NAME, themeCssVars } from "@/lib/theme";
 import "./globals.css";
 
@@ -13,7 +14,9 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" style={themeCssVars() as CSSProperties}>
-      <body>{children}</body>
+      <body>
+        <UiProvider>{children}</UiProvider>
+      </body>
     </html>
   );
 }
