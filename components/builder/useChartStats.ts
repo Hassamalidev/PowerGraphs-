@@ -2,11 +2,13 @@
 
 import { useMemo } from "react";
 import type { ChartSeries, TrendLine } from "@/components/chart/chartModel";
+import { buildStatBlocks, type StatBlocks } from "@/lib/stats/blocks";
 import { buildStatsText, type StatsMode, type StatsSeries } from "@/lib/stats/sentences";
 import { computeTrend } from "@/lib/stats/trend";
 import type { Pt } from "@/lib/stats/types";
 
 const NO_TRENDS: TrendLine[] = [];
+const NO_BLOCKS: StatBlocks = { blocks: [] };
 
 type Input = {
   dates: string[];
@@ -18,11 +20,11 @@ type Input = {
 
 /**
  * Statistics for the visible range and current view: the sentences for the
- * top text box and, in "Trend line" mode, the lines to draw.
+ * top text box (as plain text and as cards) and, in "Trend line" mode, the lines to draw.
  */
 export function useChartStats(input: Input) {
   return useMemo(() => {
-    if (!input) return { text: "", trends: NO_TRENDS };
+    if (!input) return { text: "", trends: NO_TRENDS, blocks: NO_BLOCKS };
     const { dates, series, startIndex, endIndex, mode } = input;
 
     const stats: StatsSeries[] = series.map((s) => {
@@ -49,6 +51,6 @@ export function useChartStats(input: Input) {
       });
     }
 
-    return { text: buildStatsText(mode, stats), trends };
+    return { text: buildStatsText(mode, stats), trends, blocks: buildStatBlocks(mode, stats) };
   }, [input]);
 }

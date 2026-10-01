@@ -273,6 +273,7 @@ export function ChartBuilder() {
           {state.statsMode !== "none" && data && resolved && (
             <StatsTextBox
               text={topText}
+              stats={stats.blocks}
               edited={state.topTextEdited}
               onChange={(text) => dispatch({ type: "setTopText", text })}
               onRegenerate={handleRegenerate}

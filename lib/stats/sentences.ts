@@ -71,13 +71,13 @@ export function trendSentence(series: StatsSeries, trend: Trend | null = compute
   return `${series.name} ${direction} over ${rangeText(series.visible)}. ${fit}`;
 }
 
-function correlationText(r: number): string {
+export function correlationText(r: number): string {
   // Use a real minus sign so it reads clearly: −0.52
   const text = Math.abs(r).toFixed(2);
   return r < 0 && text !== "0.00" ? `−${text}` : text;
 }
 
-function pairSentence(y: StatsSeries, x: StatsSeries, withSlope: boolean): string {
+export function pairSentence(y: StatsSeries, x: StatsSeries, withSlope: boolean): string {
   const rel = computeRelationship(y.visible, x.visible);
   if (!rel) {
     return `${y.shortName} and ${x.shortName}: not enough shared data in this range to compare them (at least ${MIN_SHARED_POINTS} points are needed). Try a longer range.`;
