@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { ReportHeaderLink } from "@/components/reports/ReportHeaderLink";
 import { SITE_NAME } from "@/lib/theme";
 
 const LINK_STYLE =
@@ -11,7 +12,7 @@ const LINK_STYLE =
 /** A header link styled like a button. The current page is highlighted. */
 export function HeaderLink({ href, children }: { href: string; children: ReactNode }) {
   const pathname = usePathname();
-  const current = href === "/" ? pathname === "/" : pathname.startsWith(href);
+  const current = pathname === href;
   return (
     <Link href={href} aria-current={current ? "page" : undefined} className={`${LINK_STYLE} ${current ? "!border-brand !bg-brand-soft" : ""}`}>
       {children}
@@ -32,6 +33,8 @@ export function AppHeader({ children }: { children?: ReactNode }) {
         </Link>
         <nav aria-label="Main" className="flex flex-wrap items-center gap-2">
           <HeaderLink href="/">Chart builder</HeaderLink>
+          <ReportHeaderLink />
+          <HeaderLink href="/reports">All reports</HeaderLink>
           <HeaderLink href="/contacts">Contacts</HeaderLink>
           {children}
         </nav>

@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { ActionBar, type ActionName } from "@/components/actions/ActionBar";
@@ -17,11 +19,13 @@ import { Banner } from "@/components/ui/Banner";
 import { Button } from "@/components/ui/Button";
 import { HelpTip } from "@/components/ui/HelpTip";
 import { useUi } from "@/components/ui/UiProvider";
+import { AddToReportDialog } from "@/components/reports/AddToReportDialog";
 import { PrintChartPage } from "@/components/print/PrintChartPage";
 import { NotesTextBox } from "@/components/text/NotesTextBox";
 import { StatsTextBox } from "@/components/text/StatsTextBox";
-import { autoTitle, needsPercentMode } from "@/lib/chart/state";
-import { errorMessage } from "@/lib/api";
+import { api, errorMessage } from "@/lib/api";
+import { autoTitle, needsPercentMode, stateToConfig } from "@/lib/chart/state";
+import { addChartToReport, chartCountText, snapshotBody } from "@/lib/reports/client";
 import { downloadBlob, downloadUrl } from "@/lib/download";
 import { formatShortDate } from "@/lib/format";
 import { buildChartPdf, chartFileBase, type ChartPage } from "@/lib/pdf/chartPdf";
@@ -41,7 +45,8 @@ type NoteFlow =
 
 /** The main screen: pick datasets, see the chart with its arrow labels, choose the range and view. */
 export function ChartBuilder() {
-  const { state, dispatch, hydrated, reset } = useBuilderState();
+  const { state, dispatch, hydrated, reset, editing, editError, stopEditing } = useBuilderState();
+  const router = useRouter();
   const { data, resolved, error, retry } = useChartData(state);
   const ui = useUi();
 
@@ -148,6 +153,29 @@ export function ChartBuilder() {
   const { contacts, reload: reloadContacts } = useContacts();
   const [sendTo, setSendTo] = useState<string[]>([]);
   const [emailOpen, setEmailOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+
+  /** "Add to report": save a snapshot of this chart into the chosen (or new) report. */
+  const handleAddToReport = async (target: { reportId: string } | { newTitle: string }) => {
+    if (!resolved || !meta) throw new Error("The chart is still loading. Please try again in a moment.");
+    const page = await takeSnapshot();
+    const added = await addChartToReport(target, page, stateToConfig(state, resolved, title), meta.dataAsOf);
+    setReportOpen(false);
+    ui.toast(`Added to '${added.title}' (${chartCountText(added.chartCount)}).`);
+  };
+
+  /** "Update in report": replace the saved snapshot with the chart as it is now, then go back to the report. */
+  const handleUpdateInReport = () =>
+    run("report", async () => {
+      if (!editing || !resolved || !meta) return;
+      const page = await takeSnapshot();
+      await api(`/api/charts/${editing.chartId}`, {
+        method: "PUT",
+        body: snapshotBody(page, stateToConfig(state, resolved, title), meta.dataAsOf),
+      });
+      ui.toast("The chart was updated in the report.");
+      router.push(editing.reportId ? `/reports/${editing.reportId}` : "/reports");
+    });
 
   /** Run an export action, showing "Working…" on its button and a plain message if it fails. */
   const run = async (name: ActionName, action: () => Promise<void>) => {
@@ -193,6 +221,20 @@ export function ChartBuilder() {
       </AppHeader>
 
       <main className="screen-only mx-auto flex max-w-[1280px] flex-col gap-5 px-4 py-5 sm:px-6">
+        {editing && (
+          <Banner>
+            <span className="font-semibold">You are editing a chart from a report.</span> When you&apos;re done, choose{" "}
+            <span className="font-semibold">Update in report</span> at the bottom of the page.{" "}
+            <Link href={editing.reportId ? `/reports/${editing.reportId}` : "/reports"} className="font-semibold underline">
+              Go back without saving
+            </Link>{" "}
+            ·{" "}
+            <button type="button" onClick={stopEditing} className="font-semibold underline">
+              Keep this as a new chart instead
+            </button>
+          </Banner>
+        )}
+        {editError && <Banner kind="error">We couldn&apos;t open that chart for editing. {editError}</Banner>}
         {fallback && (
           <Banner>
             We couldn&apos;t reach the Census website. Showing the saved copy from{" "}
@@ -368,19 +410,28 @@ export function ChartBuilder() {
         </section>
 
         <section aria-label="Meeting notes" className="rounded-xl border border-line bg-surface p-4">
-          <NotesTextBox text={state.bottomText} onChange={(text) => dispatch({ type: "setBottomText", text })} />
+          {/* Shown once the saved chart has loaded, so typing early can't be overwritten. */}
+          {hydrated ? (
+            <NotesTextBox text={state.bottomText} onChange={(text) => dispatch({ type: "setBottomText", text })} />
+          ) : (
+            <div className="skeleton h-32" />
+          )}
         </section>
 
         <ActionBar
           busy={busy}
-          disabled={!data || !resolved}
+          disabled={!hydrated || !data || !resolved}
           onPrint={handlePrint}
           onDownloadPdf={handleDownloadPdf}
           onDownloadImage={handleDownloadImage}
           onEmail={() => setEmailOpen(true)}
+          onAddToReport={editing ? handleUpdateInReport : () => setReportOpen(true)}
+          reportLabel={editing ? "Update in report" : "Add to report"}
           sendTo={<ContactPicker label="Send to" contacts={contacts} value={sendTo} onChange={setSendTo} />}
         />
       </main>
+
+      {reportOpen && <AddToReportDialog onAdd={handleAddToReport} onClose={() => setReportOpen(false)} />}
 
       {emailOpen && (
         <EmailDialog

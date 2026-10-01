@@ -1,7 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useReducer, useState } from "react";
-import { DEFAULT_STATE, queryToState, reducer, stateToQuery, type BuilderState } from "@/lib/chart/state";
+import { api, errorMessage } from "@/lib/api";
+import { configToState, DEFAULT_STATE, queryToState, reducer, stateToQuery, type BuilderState } from "@/lib/chart/state";
+import type { SavedChartDto } from "@/lib/reports/client";
+
+/** Set when the builder was opened from a report's "Edit" button. */
+export type EditTarget = { chartId: string; reportId: string | null };
 
 const STORAGE_KEY = "powergraphs:chart";
 /** Query parameters that aren't chart state and must survive URL updates. */
@@ -44,25 +49,56 @@ function initialState(): BuilderState {
 export function useBuilderState() {
   const [state, dispatch] = useReducer(reducer, DEFAULT_STATE);
   const [hydrated, setHydrated] = useState(false);
+  const [editing, setEditing] = useState<EditTarget | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
 
   useEffect(() => {
-    dispatch({ type: "load", state: initialState() });
-    setHydrated(true);
+    const params = new URLSearchParams(window.location.search);
+    const chartId = params.get("edit");
+    if (!chartId) {
+      dispatch({ type: "load", state: initialState() });
+      setHydrated(true);
+      return;
+    }
+    // Editing a chart from a report: start from the saved snapshot, not from this tab's last chart.
+    let cancelled = false;
+    api<{ chart: SavedChartDto }>(`/api/charts/${encodeURIComponent(chartId)}`)
+      .then(({ chart }) => {
+        if (cancelled) return;
+        if (!chart.config) throw new Error("This saved chart can't be opened for editing any more.");
+        dispatch({ type: "load", state: configToState(chart.config, chart.topText, chart.bottomText) });
+        setEditing({ chartId, reportId: params.get("report") });
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setEditError(errorMessage(err));
+        dispatch({ type: "load", state: initialState() });
+      })
+      .finally(() => !cancelled && setHydrated(true));
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
     if (!hydrated) return;
     const current = new URLSearchParams(window.location.search);
     const next = new URLSearchParams(stateToQuery(state));
-    for (const name of KEEP_PARAMS) {
-      const value = current.get(name);
-      if (value) next.set(name, value);
+    if (editing) {
+      for (const name of KEEP_PARAMS) {
+        const value = current.get(name);
+        if (value) next.set(name, value);
+      }
     }
     window.history.replaceState(window.history.state, "", `${window.location.pathname}?${next.toString()}`);
-    writeSession(state);
-  }, [state, hydrated]);
+    // A chart being edited for a report shouldn't replace this tab's own work in progress.
+    if (!editing) writeSession(state);
+  }, [state, hydrated, editing]);
 
   const reset = useCallback(() => dispatch({ type: "reset" }), []);
 
-  return { state, dispatch, hydrated, reset };
+  /** Leave "editing a report chart" mode and carry on as a normal new chart. */
+  const stopEditing = useCallback(() => setEditing(null), []);
+
+  return { state, dispatch, hydrated, reset, editing, editError, stopEditing };
 }
