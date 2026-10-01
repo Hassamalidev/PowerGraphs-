@@ -9,3 +9,4 @@ prisma/dev.db-journal
 next-env.d.ts
 .DS_Store
 npm-debug.log*
+prisma/schema.postgres.prisma

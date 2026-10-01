@@ -197,10 +197,28 @@ that keeps files between restarts, such as Railway, Render, or a small server.
 2. Build with `npm install && npx prisma db push && npm run build`.
 3. Start with `npm start`.
 
-**Hosts without a permanent disk** (such as Vercel) need a hosted database
-instead. In [`prisma/schema.prisma`](prisma/schema.prisma) change
-`provider = "sqlite"` to `"postgresql"`, set `DATABASE_URL` to the connection
-string, and run `npx prisma db push`.
+### Free hosting: Vercel + Neon
+
+Vercel can't keep the database file, so on Vercel the app uses a free hosted
+PostgreSQL database from Neon instead. Nothing in the code needs changing:
+Vercel runs `npm run vercel-build`, which switches the database type for that
+build only.
+
+1. **Database.** Create a free project at https://neon.tech and copy its
+   connection string (it starts with `postgresql://`).
+2. **Hosting.** At https://vercel.com choose **Add New → Project** and import
+   this GitHub repository.
+3. **Settings.** Before pressing Deploy, add these under *Environment Variables*:
+   - `DATABASE_URL`: the Neon connection string
+   - `APP_PASSWORD`: a password, so the site isn't open to everyone (optional)
+   - the `SMTP_…` and `EMAIL_FROM` values if you want email to work (optional)
+4. Press **Deploy**. The tables are created during the build. Every later
+   `git push` redeploys automatically.
+
+Good to know on the free plans: Vercel limits a single upload to about 4.5 MB,
+so emailing a report with many charts may fail (downloading it still works);
+Vercel's free plan is meant for non-commercial use; and Neon pauses an idle
+database, so the first visit after a quiet spell takes a few seconds longer.
 
 **Moving under PowerBanks.com later.** Set `NEXT_PUBLIC_BASE_PATH=/powergraphs`
 and rebuild. The name, colours, and fonts all come from
