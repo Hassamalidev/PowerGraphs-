@@ -289,5 +289,3 @@ in a browser; there are no automated browser tests in the repository.
 - [`docs/census-ressales-codes.md`](docs/census-ressales-codes.md): the Census codes behind each dataset.
 
 Data source: U.S. Census Bureau, New Residential Sales.
-#   P o w e r G r a p h s -  
- 
