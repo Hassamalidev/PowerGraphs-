@@ -3,13 +3,17 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { PowerChart, type PointClick, type PowerChartHandle } from "@/components/chart/PowerChart";
 import { RangeControls } from "@/components/chart/RangeControls";
-import { lastVisibleIndex, type TrendLine } from "@/components/chart/chartModel";
+import { lastVisibleIndex } from "@/components/chart/chartModel";
 import { DatasetPicker } from "@/components/controls/DatasetPicker";
+import { StatsPicker } from "@/components/controls/StatsPicker";
 import { ViewToggle } from "@/components/controls/ViewToggle";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { Banner } from "@/components/ui/Banner";
 import { Button } from "@/components/ui/Button";
 import { HelpTip } from "@/components/ui/HelpTip";
+import { useUi } from "@/components/ui/UiProvider";
+import { NotesTextBox } from "@/components/text/NotesTextBox";
+import { StatsTextBox } from "@/components/text/StatsTextBox";
 import { autoTitle, needsPercentMode } from "@/lib/chart/state";
 import { formatShortDate } from "@/lib/format";
 import { MAX_NOTES } from "@/lib/theme";
@@ -17,8 +21,7 @@ import { EditableTitle } from "./EditableTitle";
 import { NotePopover } from "./NotePopover";
 import { useBuilderState } from "./useBuilderState";
 import { useChartData } from "./useChartData";
-
-const NO_TRENDS: TrendLine[] = [];
+import { useChartStats } from "./useChartStats";
 
 /** What the "add / edit a note" flow is doing right now. */
 type NoteFlow =
@@ -31,6 +34,40 @@ type NoteFlow =
 export function ChartBuilder() {
   const { state, dispatch, hydrated, reset } = useBuilderState();
   const { data, resolved, error, retry } = useChartData(state);
+  const ui = useUi();
+
+  const statsInput = useMemo(
+    () =>
+      data && resolved
+        ? { dates: data.dates, series: data.series, startIndex: resolved.startIndex, endIndex: resolved.endIndex, mode: state.statsMode }
+        : null,
+    [data, resolved, state.statsMode],
+  );
+  const stats = useChartStats(statsInput);
+  const topText = state.topTextEdited ? state.topText : stats.text;
+
+  const handleReset = async () => {
+    const ok = await ui.confirm({
+      title: "Reset chart?",
+      message: "This puts the chart back to how it started. Your text, labels, and notes on this chart will be cleared.",
+      confirmLabel: "Reset chart",
+      danger: true,
+    });
+    if (ok) {
+      setNoteFlow(null);
+      setPendingDataset(null);
+      reset();
+    }
+  };
+
+  const handleRegenerate = async () => {
+    const ok = await ui.confirm({
+      title: "Update with latest numbers?",
+      message: "This replaces what you typed with freshly written sentences.",
+      confirmLabel: "Update the text",
+    });
+    if (ok) dispatch({ type: "regenerateTopText" });
+  };
   const chartRef = useRef<PowerChartHandle>(null);
   const [noteFlow, setNoteFlow] = useState<NoteFlow>(null);
   /** A dataset the user picked that needs "% change" mode before it can be shown. */
@@ -90,7 +127,7 @@ export function ChartBuilder() {
   return (
     <>
       <AppHeader>
-        <Button onClick={reset}>Reset chart</Button>
+        <Button onClick={handleReset}>Reset chart</Button>
       </AppHeader>
 
       <main className="screen-only mx-auto flex max-w-[1280px] flex-col gap-5 px-4 py-5 sm:px-6">
@@ -123,6 +160,19 @@ export function ChartBuilder() {
                 <Button onClick={() => setPendingDataset(null)}>Cancel</Button>
               </div>
             </Banner>
+          )}
+          <StatsPicker
+            value={state.statsMode}
+            datasetCount={state.datasets.length}
+            onChange={(mode) => dispatch({ type: "setStatsMode", mode })}
+          />
+          {state.statsMode !== "none" && data && resolved && (
+            <StatsTextBox
+              text={topText}
+              edited={state.topTextEdited}
+              onChange={(text) => dispatch({ type: "setTopText", text })}
+              onRegenerate={handleRegenerate}
+            />
           )}
         </section>
 
@@ -198,7 +248,7 @@ export function ChartBuilder() {
                   startIndex={resolved.startIndex}
                   endIndex={resolved.endIndex}
                   percentMode={state.percentChangeMode}
-                  trends={NO_TRENDS}
+                  trends={stats.trends}
                   seriesLabels={state.labels}
                   notes={state.notes}
                   onRangeChange={handleRange}
@@ -257,6 +307,10 @@ export function ChartBuilder() {
               </div>
             </>
           )}
+        </section>
+
+        <section aria-label="Meeting notes" className="rounded-xl border border-line bg-surface p-4">
+          <NotesTextBox text={state.bottomText} onChange={(text) => dispatch({ type: "setBottomText", text })} />
         </section>
       </main>
     </>

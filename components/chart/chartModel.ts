@@ -167,7 +167,10 @@ export function buildOption(input: ChartModelInput) {
         silent: true,
         lineStyle: { color: s.color, width: 1.5, type: TREND_DASH, opacity: 0.5 },
         itemStyle: { color: s.color },
-        endLabel: { show: true, formatter: "Trend", color: s.color, fontSize: 12, fontFamily: FONT_FAMILY, opacity: 0.85, distance: 4 },
+        endLabel: { show: true, formatter: "Trend", color: s.color, fontSize: 12, fontFamily: FONT_FAMILY, opacity: 0.85, distance: 4,
+          // With a right-hand axis there's no free margin, so tuck the word just inside the plot.
+          ...(hasRightAxis ? { offset: [-46, -11] } : {}),
+        },
         z: 2,
       },
     ];
