@@ -43,3 +43,62 @@ match the real Census data. Please review these with the client.
 9. **TypeScript 5** is pinned (npm's latest is the 7.0 native rewrite, which
    Next.js tooling does not yet rely on).
 10. **fflate** was added to unzip the Census data file.
+11. **playwright-core** (dev only) was used to check the app in a real browser
+    while building. It is not needed to run the app and can be removed.
+
+## Chart Builder
+
+12. **Default range** is the 5 years ending at the latest data point, inclusive
+    (e.g. Aug 2021 – Aug 2026, 61 monthly points).
+13. **Y-axes do not start at zero**; they fit the visible data so changes are
+    easy to see. Confirm the client is happy with this.
+14. **Statistics always use the real values**, also when "Compare as % change" is on.
+15. **Unit rule:** picking a dataset that would bring a third kind of
+    measurement shows the message and does not add the dataset until "Compare as
+    % change" is turned on. While three measurements are on the chart the
+    switch stays on. "Homes" and "homes per year" count as different measurements.
+16. **Label positions:** `pos` may be `null`, meaning "place automatically"; once a
+    box is dragged its position is stored as a percent of the plot area.
+    Automatic boxes avoid the lines when there is room; on a very busy chart
+    they may sit over a line, and can be dragged.
+17. **Clicking a line** moves that dataset's label to the clicked point. If that
+    point later falls outside the selected dates, the label goes back to the
+    latest point. Switching Monthly/Quarterly also sends labels back to the
+    latest point; notes move to the matching quarter (or its last month).
+18. **Adding a note without a mouse:** the "+ Add a note" bar also offers Line
+    and Date dropdowns, so it works from the keyboard.
+19. **Relationship sentence:** the step used for the second dataset ("when Median
+    price is $20,000 higher…") is a round number near its typical variation in
+    the selected range, so it changes with the data. Names are used as written
+    in the catalog.
+20. **"About" amounts** in sentences are rounded to 2 significant figures.
+21. **Top text box** is plain text, so dataset names are not bold as in the spec's examples.
+22. **The dataset catalog is bundled into the page** (Census codes are public, not
+    secret). `/api/datasets` still returns it without the codes, as specified.
+23. **Unsaved work** (texts, label positions, notes) is kept per browser tab in
+    `sessionStorage`; the main settings are in the URL. Opening the builder with
+    no settings in the URL restores the tab's last chart.
+24. **Dragging labels** is turned off only on touch screens narrower than 640px.
+
+## Print, PDF, email, reports
+
+25. The chart picture in exports is the on-screen chart at 2× resolution with the
+    slider cut off, so its shape follows the browser window width.
+26. Long statistics text or notes are cut (with "…") in the PDF so the page never
+    overflows: 9 lines of statistics, 7 lines of notes.
+27. PDFs use the built-in Helvetica font, which only covers Western characters.
+    The minus sign is written as a hyphen; other unsupported characters become "?".
+28. **Email:** all recipients are placed in the "To" line. A typed address saved
+    to contacts uses the part before "@" as the name. In production without SMTP
+    settings the send fails with a plain message; in development it is logged.
+29. **The SMTP path was checked against a local test mail server**, not a real
+    provider — no SMTP account was available. Please send one real email after
+    filling in the SMTP settings.
+30. **Chart snapshots live only inside reports.** Removing a chart from a report
+    (or deleting the report) deletes its snapshot. Editing from a report replaces
+    that snapshot ("Update in report").
+31. Report fields save when you leave the field. The report PDF file name uses
+    today's date. "Report (N charts)" in the header points at the report used
+    last in this browser.
+32. **Password:** the cookie holds a hash of `APP_PASSWORD`, so changing the
+    password signs everyone out.

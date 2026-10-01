@@ -228,6 +228,11 @@ function findFreeSpot(
   for (const c of candidates) if (isFree(c.box, true)) return c.box;
   // No empty space: at least don't cover another box.
   for (const c of candidates) if (isFree(c.box, false)) return c.box;
+  // Plot too narrow for the grid above (e.g. a phone): stack the boxes down the left side.
+  for (let dy = 4; dy <= plot.h - size.h; dy += 6) {
+    const box = clampBox({ x: plot.x + 4, y: plot.y + dy, ...size }, plot);
+    if (isFree(box, false)) return box;
+  }
   return clampBox({ x: plot.x + margin, y: plot.y + margin, ...size }, plot);
 }
 
