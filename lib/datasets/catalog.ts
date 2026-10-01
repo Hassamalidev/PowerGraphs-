@@ -204,15 +204,35 @@ export const CATALOG: DatasetDef[] = [
 
 export const DEFAULT_DATASET_ID = "new_homes_sold_rate";
 
-export function getDataset(id: string): DatasetDef | undefined {
+/** A built-in dataset with its Census codes (server side). */
+export function getBuiltInDef(id: string): DatasetDef | undefined {
   return CATALOG.find((d) => d.id === id);
 }
 
 /** The catalog as sent to the browser: no internal source codes. */
-export type PublicDataset = Omit<DatasetDef, "source">;
+export type PublicDataset = Omit<DatasetDef, "source"> & { custom?: boolean };
 
 export function publicCatalog(): PublicDataset[] {
   return CATALOG.map(({ source: _source, ...rest }) => rest);
+}
+
+/** Dropdown group for datasets the user added on the Datasets page. */
+export const CUSTOM_GROUP = "Added by you";
+
+// Datasets the user added (loaded from /api/datasets in the browser — see lib/datasets/client.ts).
+let customDatasets: PublicDataset[] = [];
+
+export function setCustomDatasets(list: PublicDataset[]) {
+  customDatasets = list;
+}
+
+/** Every dataset that can be charted: the built-in catalog plus the user's own. */
+export function allDatasets(): PublicDataset[] {
+  return [...publicCatalog(), ...customDatasets];
+}
+
+export function getDataset(id: string): PublicDataset | undefined {
+  return CATALOG.find((d) => d.id === id) ?? customDatasets.find((d) => d.id === id);
 }
 
 /** The rule actually used to compute quarterly values from monthly ones. */

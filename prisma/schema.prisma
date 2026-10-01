@@ -65,3 +65,20 @@ model EmailLog {
   error          String?
   createdAt      DateTime @default(now())
 }
+
+// Datasets a user added from the Census series list (on top of the built-in catalog).
+model CustomDataset {
+  id             String   @id // e.g. "c_forsale_underc_no_us"
+  name           String
+  description    String
+  program        String
+  category_code  String
+  data_type_code String
+  seasonally_adj String // "yes" | "no"
+  geo_level_code String
+  unit           String
+  unitLabel      String
+  scale          Float
+  quarterly      String // "average" | "sum" | "last"
+  createdAt      DateTime @default(now())
+}

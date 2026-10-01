@@ -1,4 +1,4 @@
-import { CATALOG, DEFAULT_DATASET_ID, getDataset, type Unit } from "@/lib/datasets/catalog";
+import { DEFAULT_DATASET_ID, getDataset, type Unit } from "@/lib/datasets/catalog";
 import { convertPeriod, isQuarter, isValidPeriod, periodLabel, shiftPeriod, type View } from "@/lib/period";
 import type { StatsMode } from "@/lib/stats/sentences";
 import { MAX_DATASETS, MAX_NOTES } from "@/lib/theme";
@@ -220,7 +220,7 @@ export function queryToState(search: string): Partial<BuilderState> | null {
 
   const ids: string[] = [];
   for (const id of (params.get("d") ?? "").split(",")) {
-    if (CATALOG.some((d) => d.id === id) && !ids.includes(id) && ids.length < MAX_DATASETS) ids.push(id);
+    if (getDataset(id) && !ids.includes(id) && ids.length < MAX_DATASETS) ids.push(id);
   }
   const datasets = ids.length ? ids : [DEFAULT_DATASET_ID];
 

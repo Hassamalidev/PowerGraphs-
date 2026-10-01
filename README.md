@@ -71,7 +71,14 @@ site. A correct password is remembered for 30 days. Leave it empty for an open s
 
 ## Adding a new dataset
 
-Everything is in `lib/datasets/catalog.ts`. For another New Home Sales series:
+**From the app (no code):** open **Datasets** in the header. The page lists every
+New Home Sales series Census publishes that isn't in the dropdowns yet. Search,
+choose **+ Add this dataset**, give it a plain name, and it appears in the Chart
+builder under "Added by you". Added datasets are stored in the database
+(`CustomDataset` table) and can be removed on the same page.
+
+**In code (built-in for everyone, with a seed copy):** everything is in
+`lib/datasets/catalog.ts`. For another New Home Sales series:
 
 1. Find its codes in `docs/census-ressales-codes.md`.
 2. Add an entry to `CATALOG` with a plain `name`, `description`, and `helpText`

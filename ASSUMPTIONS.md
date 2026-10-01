@@ -102,3 +102,18 @@ match the real Census data. Please review these with the client.
     last in this browser.
 32. **Password:** the cookie holds a hash of `APP_PASSWORD`, so changing the
     password signs everyone out.
+
+## Adding datasets (requested after v1)
+
+33. **"Add a new dataset" means choosing another Census New Home Sales series**
+    on the Datasets page, not uploading your own file (CSV upload is out of scope
+    in the spec, and all data must come from Census). Other Census surveys are
+    not offered yet: they use other measurements (e.g. millions of dollars,
+    percent) and some are quarterly, which the chart doesn't handle yet.
+34. The unit, scale, and quarterly rule of an added dataset are worked out from
+    the Census codes (counts are added up, homes for sale use the last month,
+    everything else is averaged). The user only chooses the name.
+35. Added datasets have **no offline seed copy**. If Census can't be reached and
+    the dataset was never loaded before, it shows a plain error instead of a chart.
+36. Removing an added dataset takes it out of the dropdowns; charts already saved
+    in reports keep their picture but can no longer be opened with "Edit" for that dataset.

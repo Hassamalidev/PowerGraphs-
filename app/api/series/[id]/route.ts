@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { computedQuarterlyRule, getDataset } from "@/lib/datasets/catalog";
+import { computedQuarterlyRule } from "@/lib/datasets/catalog";
+import { findDef } from "@/lib/datasets/server";
 import { jsonError, safely } from "@/lib/http";
 import { periodLabel } from "@/lib/period";
 import { quarterlyMethodText, toQuarterly } from "@/lib/series/aggregate";
@@ -12,7 +13,7 @@ const viewSchema = z.enum(["monthly", "quarterly"]).default("monthly");
 export function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
   return safely(async () => {
     const { id } = await ctx.params;
-    const def = getDataset(id);
+    const def = await findDef(id);
     if (!def) return jsonError("We don't have a dataset with that name.", 404);
 
     const view = viewSchema.safeParse(new URL(req.url).searchParams.get("view") ?? undefined);

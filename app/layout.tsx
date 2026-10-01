@@ -13,8 +13,9 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" style={themeCssVars() as CSSProperties}>
-      <body>
+    <html lang="en" style={themeCssVars() as CSSProperties} suppressHydrationWarning>
+      {/* Browser extensions (e.g. grammar checkers) add attributes here; that is not an error. */}
+      <body suppressHydrationWarning>
         <UiProvider>{children}</UiProvider>
       </body>
     </html>

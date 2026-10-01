@@ -2,7 +2,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { fetchProgram } from "@/lib/census/client";
 import { rowsToPoints, type MonthlyPoint } from "@/lib/census/parse";
-import { CATALOG, type DatasetDef } from "@/lib/datasets/catalog";
+import type { DatasetDef } from "@/lib/datasets/catalog";
+import { allDefs } from "@/lib/datasets/server";
 import { seedSeries } from "./seed";
 
 const MAX_AGE_MS = 12 * 60 * 60 * 1000; // refresh from Census at most every 12 hours
@@ -45,7 +46,7 @@ async function refreshProgram(program: string): Promise<void> {
   const data = await fetchProgram(program);
   const fetchedAt = new Date();
   const writes = [];
-  for (const def of CATALOG.filter((d) => d.source.program === program)) {
+  for (const def of (await allDefs()).filter((d) => d.source.program === program)) {
     const points = rowsToPoints(data.rows, def.source, def.scale);
     if (points.length === 0) continue;
     const payload = JSON.stringify({ points, dataUpdatedOn: data.updatedOn });

@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useReducer, useState } from "react";
 import { api, errorMessage } from "@/lib/api";
 import { configToState, DEFAULT_STATE, queryToState, reducer, stateToQuery, type BuilderState } from "@/lib/chart/state";
+import { getDataset } from "@/lib/datasets/catalog";
+import { loadCustomDatasets } from "@/lib/datasets/client";
 import type { SavedChartDto } from "@/lib/reports/client";
 
 /** Set when the builder was opened from a report's "Edit" button. */
@@ -17,7 +19,11 @@ function readSession(): BuilderState | null {
     const raw = window.sessionStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<BuilderState>;
-    if (!Array.isArray(parsed.datasets) || parsed.datasets.length === 0) return null;
+    if (!Array.isArray(parsed.datasets)) return null;
+    // A dataset the user has since removed can't be charted any more.
+    const datasets = parsed.datasets.filter((id) => getDataset(id));
+    if (datasets.length === 0) return null;
+    if (datasets.length !== parsed.datasets.length) return { ...DEFAULT_STATE, datasets };
     return { ...DEFAULT_STATE, ...parsed };
   } catch {
     return null; // storage blocked or corrupted — start fresh
@@ -55,14 +61,21 @@ export function useBuilderState() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const chartId = params.get("edit");
+    let cancelled = false;
     if (!chartId) {
-      dispatch({ type: "load", state: initialState() });
-      setHydrated(true);
-      return;
+      // The user's own datasets must be known before the link's chart can be read.
+      void loadCustomDatasets().then(() => {
+        if (cancelled) return;
+        dispatch({ type: "load", state: initialState() });
+        setHydrated(true);
+      });
+      return () => {
+        cancelled = true;
+      };
     }
     // Editing a chart from a report: start from the saved snapshot, not from this tab's last chart.
-    let cancelled = false;
-    api<{ chart: SavedChartDto }>(`/api/charts/${encodeURIComponent(chartId)}`)
+    loadCustomDatasets()
+      .then(() => api<{ chart: SavedChartDto }>(`/api/charts/${encodeURIComponent(chartId)}`))
       .then(({ chart }) => {
         if (cancelled) return;
         if (!chart.config) throw new Error("This saved chart can't be opened for editing any more.");

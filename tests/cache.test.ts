@@ -31,8 +31,8 @@ async function load() {
   // Fresh module each time so the "recent failure" memory doesn't leak between tests.
   vi.resetModules();
   const { getMonthlySeries } = await import("@/lib/series/cache");
-  const { getDataset } = await import("@/lib/datasets/catalog");
-  return () => getMonthlySeries(getDataset("new_homes_sold_rate")!);
+  const { getBuiltInDef } = await import("@/lib/datasets/catalog");
+  return () => getMonthlySeries(getBuiltInDef("new_homes_sold_rate")!);
 }
 
 describe("getMonthlySeries", () => {

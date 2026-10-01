@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import type { ChartSeries } from "@/components/chart/chartModel";
 import { resolveRange, type BuilderState } from "@/lib/chart/state";
-import { getDataset, type DatasetDef } from "@/lib/datasets/catalog";
+import { getDataset, type PublicDataset } from "@/lib/datasets/catalog";
 import { periodLabel } from "@/lib/period";
 import type { SeriesResponse } from "@/lib/series/types";
 import { SERIES_STYLES } from "@/lib/theme";
@@ -15,7 +15,7 @@ export function useChartData(state: BuilderState) {
 
   const data = useMemo(() => {
     if (!responses) return null;
-    const defs = state.datasets.map((id) => getDataset(id)).filter(Boolean) as DatasetDef[];
+    const defs = state.datasets.map((id) => getDataset(id)).filter(Boolean) as PublicDataset[];
     if (defs.length !== responses.length) return null;
 
     // One shared date axis: every date any selected dataset has.

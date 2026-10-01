@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useId } from "react";
-import { CATALOG, getDataset } from "@/lib/datasets/catalog";
+import { allDatasets, getDataset } from "@/lib/datasets/catalog";
 import { MAX_DATASETS, SERIES_STYLES } from "@/lib/theme";
 import { HelpTip } from "@/components/ui/HelpTip";
 import { RichSelect, type RichOption } from "./RichSelect";
@@ -29,7 +30,7 @@ function Slot({ slot, selected, onChange }: { slot: number; selected: string[]; 
   const current = selected[slot] ?? null;
   const def = current ? getDataset(current) : undefined;
 
-  const options: RichOption[] = CATALOG.map((d) => {
+  const options: RichOption[] = allDatasets().map((d) => {
     const usedElsewhere = selected.includes(d.id) && d.id !== current;
     return {
       value: d.id,
@@ -73,10 +74,18 @@ function Slot({ slot, selected, onChange }: { slot: number; selected: string[]; 
 /** Up to three dataset dropdowns. Dataset 1 is always filled. */
 export function DatasetPicker({ selected, onChange, slots = MAX_DATASETS }: Props) {
   return (
-    <div className="grid gap-4 md:grid-cols-3">
-      {Array.from({ length: slots }, (_, slot) => (
-        <Slot key={slot} slot={slot} selected={selected} onChange={onChange} />
-      ))}
+    <div>
+      <div className="grid gap-4 md:grid-cols-3">
+        {Array.from({ length: slots }, (_, slot) => (
+          <Slot key={slot} slot={slot} selected={selected} onChange={onChange} />
+        ))}
+      </div>
+      <p className="mt-2 text-sm text-muted">
+        Can&apos;t find what you need?{" "}
+        <Link href="/datasets" className="font-semibold text-brand underline">
+          Add a new dataset
+        </Link>
+      </p>
     </div>
   );
 }

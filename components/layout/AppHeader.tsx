@@ -35,6 +35,7 @@ export function AppHeader({ children }: { children?: ReactNode }) {
           <HeaderLink href="/">Chart builder</HeaderLink>
           <ReportHeaderLink />
           <HeaderLink href="/reports">All reports</HeaderLink>
+          <HeaderLink href="/datasets">Datasets</HeaderLink>
           <HeaderLink href="/contacts">Contacts</HeaderLink>
           {children}
         </nav>
