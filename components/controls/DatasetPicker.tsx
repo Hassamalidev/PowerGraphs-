@@ -43,7 +43,7 @@ function Slot({ slot, selected, onChange }: { slot: number; selected: string[]; 
 
   return (
     <div className="min-w-0">
-      <div className="mb-1 flex items-center gap-2">
+      <div className="mb-1 flex min-h-9 items-center gap-2">
         <span id={labelId} className="font-semibold">
           Dataset {slot + 1}
         </span>
