@@ -6,9 +6,12 @@ import { ActionBar, type ActionName } from "@/components/actions/ActionBar";
 import { PowerChart, type PointClick, type PowerChartHandle } from "@/components/chart/PowerChart";
 import { RangeControls } from "@/components/chart/RangeControls";
 import { lastVisibleIndex } from "@/components/chart/chartModel";
+import { useContacts } from "@/components/contacts/useContacts";
 import { DatasetPicker } from "@/components/controls/DatasetPicker";
 import { StatsPicker } from "@/components/controls/StatsPicker";
 import { ViewToggle } from "@/components/controls/ViewToggle";
+import { ContactPicker } from "@/components/email/ContactPicker";
+import { EmailDialog } from "@/components/email/EmailDialog";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { Banner } from "@/components/ui/Banner";
 import { Button } from "@/components/ui/Button";
@@ -22,7 +25,7 @@ import { errorMessage } from "@/lib/api";
 import { downloadBlob, downloadUrl } from "@/lib/download";
 import { formatShortDate } from "@/lib/format";
 import { buildChartPdf, chartFileBase, type ChartPage } from "@/lib/pdf/chartPdf";
-import { MAX_NOTES } from "@/lib/theme";
+import { MAX_NOTES, SITE_NAME } from "@/lib/theme";
 import { EditableTitle } from "./EditableTitle";
 import { NotePopover } from "./NotePopover";
 import { useBuilderState } from "./useBuilderState";
@@ -142,6 +145,9 @@ export function ChartBuilder() {
 
   const [busy, setBusy] = useState<ActionName | null>(null);
   const [printPage, setPrintPage] = useState<ChartPage | null>(null);
+  const { contacts, reload: reloadContacts } = useContacts();
+  const [sendTo, setSendTo] = useState<string[]>([]);
+  const [emailOpen, setEmailOpen] = useState(false);
 
   /** Run an export action, showing "Working…" on its button and a plain message if it fails. */
   const run = async (name: ActionName, action: () => Promise<void>) => {
@@ -371,8 +377,22 @@ export function ChartBuilder() {
           onPrint={handlePrint}
           onDownloadPdf={handleDownloadPdf}
           onDownloadImage={handleDownloadImage}
+          onEmail={() => setEmailOpen(true)}
+          sendTo={<ContactPicker label="Send to" contacts={contacts} value={sendTo} onChange={setSendTo} />}
         />
       </main>
+
+      {emailOpen && (
+        <EmailDialog
+          title="Email this chart"
+          subject={`${SITE_NAME}: ${title}`}
+          makePdf={async () => buildChartPdf(await takeSnapshot())}
+          contacts={contacts}
+          initialRecipients={sendTo}
+          onContactsChanged={reloadContacts}
+          onClose={() => setEmailOpen(false)}
+        />
+      )}
 
       {printPage && (
         <div className="print-only">
